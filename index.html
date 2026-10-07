@@ -93,9 +93,9 @@ textarea#out{min-height:200px;font-family:var(--mono);font-size:13px;line-height
    </div>
   </div>
   <p class="hint" id="cname" style="margin:14px 0 8px"></p>
-  <div class="tablewrap"><table><thead><tr><th></th><th>Codice</th><th>Prodotto</th><th>Qtà</th></tr></thead><tbody id="rows"></tbody></table></div>
+  <div class="tablewrap"><table><thead><tr><th></th><th>Codice</th><th>Prodotto</th><th>Qtà (t)</th></tr></thead><tbody id="rows"></tbody></table></div>
   <div id="extras"></div><button class="ghost" id="addx" style="margin-top:8px">Aggiungi un altro prodotto</button>
-  <p class="hint">I prodotti fermi da più di 4 mesi sono deselezionati. Le quantità sono nell'unità usata nel file ordini e si possono correggere qui.</p>
+  <p class="hint">I prodotti fermi da più di 4 mesi sono deselezionati. Le quantità sono in tonnellate (t), come nel file ordini, e si possono correggere qui. Per i prodotti aggiunti a mano scrivi tu la quantità con l'unità (es. 4 sacconi).</p>
  </section>
  <section id="msgbox" hidden>
   <div class="bar"><label for="out">Messaggio</label><button class="copy" id="copy">Copia messaggio</button></div>
@@ -134,10 +134,10 @@ function render(){if(cur===null)return;const c=DATA[cur];$('work').hidden=false;
 function setQty(){const c=DATA[cur];c.p.forEach((p,j)=>{$('n'+j).value=mode==='last'?p.l:p.m});bind();msg()}
 function bind(){const c=DATA[cur];c.p.forEach((p,j)=>{$('k'+j).onchange=msg;$('n'+j).oninput=msg})}
 let extras=[];
-function drawExtras(){const e=$('extras');e.innerHTML='';extras.forEach((x,i)=>{const d=document.createElement('div');d.className='extra';d.innerHTML='<input type="text" id="xd'+i+'" aria-label="Prodotto" placeholder="Prodotto (codice e nome)"><input type="number" step="any" min="0" id="xq'+i+'" aria-label="Quantità" placeholder="Qtà"><button class="ghost" id="xr'+i+'">Togli</button>';e.appendChild(d);$('xd'+i).value=x.d;$('xq'+i).value=x.q;$('xd'+i).oninput=ev=>{x.d=ev.target.value;msg()};$('xq'+i).oninput=ev=>{x.q=ev.target.value;msg()};$('xr'+i).onclick=()=>{extras.splice(i,1);drawExtras();msg()}})}
+function drawExtras(){const e=$('extras');e.innerHTML='';extras.forEach((x,i)=>{const d=document.createElement('div');d.className='extra';d.innerHTML='<input type="text" id="xd'+i+'" aria-label="Prodotto" placeholder="Prodotto (codice e nome)"><input type="text" id="xq'+i+'" aria-label="Quantità" placeholder="Es. 4 sacconi"><button class="ghost" id="xr'+i+'">Togli</button>';e.appendChild(d);$('xd'+i).value=x.d;$('xq'+i).value=x.q;$('xd'+i).oninput=ev=>{x.d=ev.target.value;msg()};$('xq'+i).oninput=ev=>{x.q=ev.target.value;msg()};$('xr'+i).onclick=()=>{extras.splice(i,1);drawExtras();msg()}})}
 function whenText(){const v=$('dt').value;if(v){const d=new Date(v+'T12:00:00');return d.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}return $('when').value.trim()}
-function msg(){if(cur===null)return;const c=DATA[cur];const lines=[];c.p.forEach((p,j)=>{if($('k'+j).checked){const q=parseFloat($('n'+j).value);lines.push(p.c+' | '+p.s+' | '+(isNaN(q)?'?':fmt(q)))}});
- extras.forEach(x=>{if(x.d.trim()){const q=parseFloat(x.q);lines.push(x.d.trim()+' | '+(isNaN(q)?'?':fmt(q)))}});
+function msg(){if(cur===null)return;const c=DATA[cur];const lines=[];c.p.forEach((p,j)=>{if($('k'+j).checked){const q=parseFloat($('n'+j).value);lines.push(p.c+' | '+p.s+' | '+(isNaN(q)?'?':fmt(q)+' t'))}});
+ extras.forEach(x=>{if(x.d.trim()){lines.push(x.d.trim()+' | '+(x.q.trim()||'?'))}});
  const w=whenText(),s=$('sede').value.trim(),n=$('note').value.trim();
  $('out').value='Ordine '+nice(c.name)+'\n'+(w?'Consegna: '+w+'\n':'')+(s?'Sede: '+s+'\n':'')+'\n'+(lines.length?lines.join('\n'):'(nessun prodotto selezionato)')+(n?'\n\nNote: '+n:'');$('copied').textContent=''}
 ['dt','when','sede','note'].forEach(i=>$(i).addEventListener('input',msg));
@@ -156,7 +156,7 @@ async function unlock(pw){
 $('lf').addEventListener('submit',async e=>{e.preventDefault();const m=$('lmsg'),b=$('lgo');
  if(!window.crypto||!crypto.subtle){m.textContent='Questo browser non supporta la cifratura: apri il link con Chrome, Safari o Firefox aggiornati.';return}
  m.textContent='Controllo la password…';b.disabled=true;
- try{DATA=await unlock($('pw').value);$('login').hidden=true;$('app').hidden=false;renderChips()}
+ try{DATA=(await unlock($('pw').value)).sort((a,b)=>nice(a.name).localeCompare(nice(b.name),'it'));$('login').hidden=true;$('app').hidden=false;renderChips()}
  catch(err){m.textContent='Password non corretta.';$('pw').select()}
  b.disabled=false});
 </script>
