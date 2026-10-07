@@ -2,6 +2,8 @@
 <html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light}*{box-sizing:border-box}body{margin:0}[hidden]{display:none!important}</style>
 <title>Ordini Alpha</title>
 <meta name="robots" content="noindex,nofollow">
+<link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Ordini Alpha"><meta name="theme-color" content="#2f6b3f">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
 /* Layout: colonna unica stretta, cerca cliente > prodotti spuntabili > messaggio da copiare */
@@ -24,12 +26,12 @@ input:focus-visible,textarea:focus-visible,button:focus-visible,select:focus-vis
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media (max-width:520px){.row2{grid-template-columns:1fr}}
 .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
-table{border-collapse:collapse;width:100%;min-width:560px}
+table{border-collapse:collapse;width:100%;min-width:0}
 th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);font-weight:500}
 td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
 tr:last-child td{border-bottom:0}
 td.cod{font-family:var(--mono);font-size:13px;white-space:nowrap}
-td.q{width:96px}
+td.q{width:120px}
 td.q input{padding:6px 8px;font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums}
 .flag{display:inline-block;font-size:11px;background:var(--warn-bg);color:var(--warn);border-radius:4px;padding:1px 6px;margin-top:3px}
 .meta{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
@@ -53,6 +55,10 @@ textarea#out{min-height:200px;font-family:var(--mono);font-size:13px;line-height
 .sug{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:6px;background:var(--surface);overflow:hidden}
 .sug button{font:inherit;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);color:var(--fg);padding:9px 12px;cursor:pointer}
 .sug button:last-child{border-bottom:0}.sug button:hover{background:var(--bg)}
+h2.sec{font-size:15px;margin:22px 0 8px;font-weight:600}
+.qw{display:flex;align-items:center;gap:4px}
+.qw input{width:84px!important;font-size:17px;font-weight:600;text-align:right;border:2px solid var(--accent)!important;background:#fff;color:#000}
+.qw span{font-weight:600}
 </style>
 </head><body>
 <main id="login" class="lg">
@@ -61,13 +67,14 @@ textarea#out{min-height:200px;font-family:var(--mono);font-size:13px;line-height
  <form id="lf" class="field" style="max-width:360px;gap:10px">
   <label for="pw">Password</label>
   <input type="password" id="pw" autocomplete="current-password" autofocus>
+  <label style="text-transform:none;letter-spacing:0;font-size:14px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="stay" checked> Resta connesso su questo telefono</label>
   <button class="copy" id="lgo" type="submit">Apri</button>
   <span id="lmsg" class="status" role="status"></span>
  </form>
 </main>
 <main id="app" hidden>
  <header>
-  <h1>Ordini Alpha</h1>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h1>Ordini Alpha</h1><button class="ghost" id="exit">Esci</button></div>
   <p class="sub">Scrivi il cliente, controlla i prodotti e copia il messaggio per l'ufficio. Dati dallo storico ordini set 2025 – set 2026, primi 20 clienti.</p>
  </header>
  
@@ -81,24 +88,26 @@ textarea#out{min-height:200px;font-family:var(--mono);font-size:13px;line-height
   <div id="chips" class="chips"></div>
  </section>
  <section id="work" hidden>
+  <p class="hint" id="cname" style="margin:0 0 8px;font-size:14px;font-weight:600;color:var(--fg)"></p>
+  <div class="field"><label>Quantità predefinite</label>
+   <div class="seg" role="group" aria-label="Quantità da usare"><button id="mLast" aria-pressed="true">Ultimo ordine</button><button id="mMed" aria-pressed="false">Mediana</button></div>
+  </div>
+  <h2 class="sec">1. Prodotti e quantità</h2>
+  <p class="hint" style="margin:0 0 8px">Spunta i prodotti da ordinare e <b>scrivi la quantità nella casella bianca</b> (in tonnellate, t).</p>
+  <div class="tablewrap"><table><thead><tr><th></th><th>Codice / prodotto</th><th>Quantità (modificabile)</th></tr></thead><tbody id="rows"></tbody></table></div>
+  <div id="extras"></div><button class="ghost" id="addx" style="margin-top:8px">Aggiungi un altro prodotto</button>
+  <p class="hint">I prodotti fermi da più di 4 mesi sono deselezionati. Per i prodotti aggiunti a mano scrivi tu la quantità con l'unità (es. 4 sacconi).</p>
+  <h2 class="sec">2. Consegna</h2>
   <div class="row3">
    <div class="field"><label for="dt">Giorno di consegna</label><input type="date" id="dt"></div>
    <div class="field"><label for="when">Oppure periodo</label><input type="text" id="when" value="settimana prossima" placeholder="Es. settimana prossima"></div>
    <div class="field"><label for="sede">Sede di consegna</label><input type="text" id="sede" placeholder="Sede abituale"></div>
   </div>
-  <div class="row2" style="margin-top:12px">
-   <div class="field"><label for="note">Note</label><input type="text" id="note" placeholder="Es. consegnare con motrice anteriore"></div>
-   <div class="field"><label>Quantità predefinite</label>
-    <div class="seg" role="group" aria-label="Quantità da usare"><button id="mLast" aria-pressed="true">Ultimo ordine</button><button id="mMed" aria-pressed="false">Mediana</button></div>
-   </div>
-  </div>
-  <p class="hint" id="cname" style="margin:14px 0 8px"></p>
-  <div class="tablewrap"><table><thead><tr><th></th><th>Codice</th><th>Prodotto</th><th>Qtà (t)</th></tr></thead><tbody id="rows"></tbody></table></div>
-  <div id="extras"></div><button class="ghost" id="addx" style="margin-top:8px">Aggiungi un altro prodotto</button>
-  <p class="hint">I prodotti fermi da più di 4 mesi sono deselezionati. Le quantità sono in tonnellate (t), come nel file ordini, e si possono correggere qui. Per i prodotti aggiunti a mano scrivi tu la quantità con l'unità (es. 4 sacconi).</p>
+  <div class="field" style="margin-top:12px"><label for="note">Note</label><input type="text" id="note" placeholder="Es. consegnare con motrice anteriore"></div>
+  <h2 class="sec" style="margin-bottom:0">3. Messaggio</h2>
  </section>
  <section id="msgbox" hidden>
-  <div class="bar"><label for="out">Messaggio</label><button class="copy" id="copy">Copia messaggio</button></div>
+  <div class="bar"><label for="out">Messaggio pronto</label><button class="copy" id="copy">Copia messaggio</button></div>
   <textarea id="out" readonly></textarea>
   <span class="hint" id="copied" role="status"></span>
  </section>
@@ -128,7 +137,7 @@ function render(){if(cur===null)return;const c=DATA[cur];$('work').hidden=false;
  $('cname').textContent=nice(c.name)+' · '+c.p.length+' prodotti abituali';
  const tb=$('rows');tb.innerHTML='';
  c.p.forEach((p,j)=>{const old=monthsAgo(p.d),stale=old>4;const tr=document.createElement('tr');
-  tr.innerHTML='<td><input type="checkbox" id="k'+j+'" aria-label="Includi '+p.c+'"'+(stale?'':' checked')+'></td><td class="cod">'+p.c+'</td><td>'+p.s+'<div class="meta">'+p.n+' ordini · ultimo '+p.d.split('-').reverse().join('/')+'</div>'+(stale?'<span class="flag">fermo da '+Math.floor(old)+' mesi</span>':'')+'</td><td class="q"><input type="number" step="any" min="0" id="n'+j+'" aria-label="Quantità '+p.c+'"></td>';
+  tr.innerHTML='<td><input type="checkbox" id="k'+j+'" aria-label="Includi '+p.c+'"'+(stale?'':' checked')+'></td><td><span class="cod" style="display:block;font-family:var(--mono);font-size:12px;color:var(--muted)">'+p.c+'</span> '+p.s+'<div class="meta">'+p.n+' ordini · ultimo '+p.d.split('-').reverse().join('/')+'</div>'+(stale?'<span class="flag">fermo da '+Math.floor(old)+' mesi</span>':'')+'</td><td class="q"><div class="qw"><input type="number" inputmode="decimal" step="any" min="0" id="n'+j+'" aria-label="Quantità '+p.c+'"><span>t</span></div></td>';
   tb.appendChild(tr)});
  setQty();}
 function setQty(){const c=DATA[cur];c.p.forEach((p,j)=>{$('n'+j).value=mode==='last'?p.l:p.m});bind();msg()}
@@ -148,17 +157,24 @@ $('mMed').onclick=()=>{mode='med';$('mMed').setAttribute('aria-pressed',true);$(
 $('copy').onclick=async()=>{const t=$('out').value;try{await navigator.clipboard.writeText(t);$('copied').textContent='Copiato.'}catch(e){$('out').focus();$('out').select();$('copied').textContent='Testo selezionato: premi copia sul telefono o Ctrl+C.'}};
 
 const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
-async function unlock(pw){
+const KS='ordiniAlphaKey';
+async function dec(key){const buf=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(ENC.v)},key,b64(ENC.d));return JSON.parse(new TextDecoder().decode(buf))}
+async function derive(pw){
  const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
- const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:b64(ENC.s),iterations:ENC.i,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt']);
- const buf=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(ENC.v)},key,b64(ENC.d));
- return JSON.parse(new TextDecoder().decode(buf))}
+ return crypto.subtle.deriveKey({name:'PBKDF2',salt:b64(ENC.s),iterations:ENC.i,hash:'SHA-256'},km,{name:'AES-GCM',length:256},true,['decrypt'])}
+function open(d){DATA=d.sort((a,b)=>nice(a.name).localeCompare(nice(b.name),'it'));$('login').hidden=true;$('app').hidden=false;renderChips()}
 $('lf').addEventListener('submit',async e=>{e.preventDefault();const m=$('lmsg'),b=$('lgo');
  if(!window.crypto||!crypto.subtle){m.textContent='Questo browser non supporta la cifratura: apri il link con Chrome, Safari o Firefox aggiornati.';return}
  m.textContent='Controllo la password…';b.disabled=true;
- try{DATA=(await unlock($('pw').value)).sort((a,b)=>nice(a.name).localeCompare(nice(b.name),'it'));$('login').hidden=true;$('app').hidden=false;renderChips()}
+ try{const key=await derive($('pw').value);const d=await dec(key);
+  try{if($('stay').checked)localStorage.setItem(KS,JSON.stringify(await crypto.subtle.exportKey('jwk',key)))}catch(x){}
+  open(d)}
  catch(err){m.textContent='Password non corretta.';$('pw').select()}
  b.disabled=false});
+$('exit').onclick=()=>{try{localStorage.removeItem(KS)}catch(x){}location.reload()};
+(async()=>{try{const k=localStorage.getItem(KS);if(!k||!crypto.subtle)return;
+ const key=await crypto.subtle.importKey('jwk',JSON.parse(k),{name:'AES-GCM'},false,['decrypt']);open(await dec(key))}
+ catch(x){try{localStorage.removeItem(KS)}catch(y){}}})();
 </script>
 
 </body></html>
