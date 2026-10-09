@@ -124,6 +124,7 @@ const norm=s=>s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[
 const nice=n=>n.split(' ').map(w=>w.length<=3&&/^(DI|E|DOTT|S\.S\.|SS|SRL|SPA|SCRL|SNC|SOC\.AGR\.|AZ\.AGR\.|AZ\.)$/.test(w)?(w==='DI'||w==='E'?w.toLowerCase():w):w.charAt(0)+w.slice(1).toLowerCase()).join(' ');
 const fmt=n=>String(Math.round(n*1000)/1000).replace('.',',');
 let cur=null,mode='last';
+const rnd=v=>v>=1?Math.round(v):Math.round(v*10)/10;
 function monthsAgo(d){return (TODAY-new Date(d))/(1000*60*60*24*30.4)}
 function renderChips(){const c=$('chips');c.innerHTML='';DATA.forEach((cl,i)=>{if(!cl.t&&cur!==i)return;const b=document.createElement('button');b.className='chip';b.textContent=nice(cl.name);b.setAttribute('aria-pressed',cur===i);b.onclick=()=>pick(i);c.appendChild(b)})}
 function suggest(){const v=norm($('q').value);const s=$('sug');if(!v){s.hidden=true;return}
@@ -141,13 +142,13 @@ function render(){if(cur===null)return;const c=DATA[cur];$('work').hidden=false;
   tr.innerHTML='<td><input type="checkbox" id="k'+j+'" aria-label="Includi '+p.c+'"'+(stale?'':' checked')+'></td><td><span class="cod" style="display:block;font-family:var(--mono);font-size:12px;color:var(--muted)">'+p.c+'</span> '+p.s+'<div class="meta">'+p.n+' ordini · ultimo '+p.d.split('-').reverse().join('/')+'</div>'+(stale?'<span class="flag">fermo da '+Math.floor(old)+' mesi</span>':'')+'</td><td class="q"><div class="qw"><input type="number" inputmode="decimal" step="any" min="0" id="n'+j+'" aria-label="Quantità '+p.c+'"><span>t</span></div></td>';
   tb.appendChild(tr)});
  setQty();}
-function setQty(){const c=DATA[cur];c.p.forEach((p,j)=>{$('n'+j).value=mode==='last'?p.l:p.m});bind();msg()}
+function setQty(){const c=DATA[cur];c.p.forEach((p,j)=>{$('n'+j).value=rnd(mode==='last'?p.l:p.m)});bind();msg()}
 function bind(){const c=DATA[cur];c.p.forEach((p,j)=>{$('k'+j).onchange=msg;$('n'+j).oninput=msg})}
 let extras=[];
 function drawExtras(){const e=$('extras');e.innerHTML='';extras.forEach((x,i)=>{const d=document.createElement('div');d.className='extra';d.innerHTML='<input type="text" id="xd'+i+'" aria-label="Prodotto" placeholder="Prodotto (codice e nome)"><input type="text" id="xq'+i+'" aria-label="Quantità" placeholder="Es. 4 sacconi"><button class="ghost" id="xr'+i+'">Togli</button>';e.appendChild(d);$('xd'+i).value=x.d;$('xq'+i).value=x.q;$('xd'+i).oninput=ev=>{x.d=ev.target.value;msg()};$('xq'+i).oninput=ev=>{x.q=ev.target.value;msg()};$('xr'+i).onclick=()=>{extras.splice(i,1);drawExtras();msg()}})}
 function whenText(){const v=$('dt').value;if(v){const d=new Date(v+'T12:00:00');return d.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}return $('when').value.trim()}
-function msg(){if(cur===null)return;const c=DATA[cur];const lines=[];c.p.forEach((p,j)=>{if($('k'+j).checked){const q=parseFloat($('n'+j).value);lines.push(p.c+' | '+p.s+' | '+(isNaN(q)?'?':fmt(q)+' t'))}});
- extras.forEach(x=>{if(x.d.trim()){lines.push(x.d.trim()+' | '+(x.q.trim()||'?'))}});
+function msg(){if(cur===null)return;const c=DATA[cur];const lines=[];c.p.forEach((p,j)=>{if($('k'+j).checked){const q=parseFloat($('n'+j).value);lines.push('- '+p.c+' | '+p.s+' | '+(isNaN(q)?'?':fmt(q)+' t'))}});
+ extras.forEach(x=>{if(x.d.trim()){lines.push('- '+x.d.trim()+' | '+(x.q.trim()||'?'))}});
  const w=whenText(),s=$('sede').value.trim(),n=$('note').value.trim();
  $('out').value='Ordine '+nice(c.name)+'\n'+(w?'Consegna: '+w+'\n':'')+(s?'Sede: '+s+'\n':'')+'\n'+(lines.length?lines.join('\n'):'(nessun prodotto selezionato)')+(n?'\n\nNote: '+n:'');$('copied').textContent=''}
 ['dt','when','sede','note'].forEach(i=>$(i).addEventListener('input',msg));
